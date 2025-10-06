@@ -3,7 +3,7 @@ import { useAuth } from '../AuthContext';
 import { Link } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaPhone, FaLock } from 'react-icons/fa';
 
-const CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // Replace with your Google OAuth client id
+const CLIENT_ID = "305261069007-7t1oas3j14ivc27nfr8382ul1cqk9nq5.apps.googleusercontent.com"; // Replace with your Google OAuth client id
 
 const Signup = () => {
   const { signup } = useAuth(); // Assuming you have a signup method
