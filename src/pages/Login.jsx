@@ -1,16 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaLock } from 'react-icons/fa';
 
-// Replace with your Google OAuth client id!
+// Google OAuth client id
 const CLIENT_ID = "305261069007-7t1oas3j14ivc27nfr8382ul1cqk9nq5.apps.googleusercontent.com";
 
 const Login = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isHovered, setIsHovered] = useState(false);
   const googleBtn = useRef(null);
+  const navigate = useNavigate(); // For navigation
 
   useEffect(() => {
     // eslint-disable-next-line no-unused-vars
@@ -37,16 +39,17 @@ const Login = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    login({ email });
+    login({ email, password });
   };
 
-  const handleForgetPassword = () => {
-    // Handle forget password logic
-    alert('Forget password functionality to be implemented');
+  // When "Forgot Password" is clicked
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
   };
 
   const gold = "#ffbf69";
   const border = "#f7dda4";
+  const hoverColor = "#e09537";
 
   return (
     <div style={{
@@ -154,7 +157,7 @@ const Login = () => {
         }}>
           <button
             type="button"
-            onClick={handleForgetPassword}
+            onClick={handleForgotPassword}
             style={{
               background: "transparent",
               border: "none",
@@ -165,28 +168,32 @@ const Login = () => {
               cursor: "pointer"
             }}
           >
-            Forget Password
+            Forgot Password
           </button>
         </div>
 
-        <button type="submit" style={{
-          width: "100%",
-          padding: "16px 0",
-          borderRadius: "5px",
-          border: "none",
-          background: gold,
-          color: "#fff",
-          fontWeight: "bold",
-          fontSize: "1.17rem",
-          letterSpacing: 1,
-          marginTop: "4px",
-          boxShadow: `0 1px 2px ${border}`,
-          cursor: "pointer"
-        }}>
+        <button
+          type="submit"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={{
+            width: "100%",
+            padding: "16px 0",
+            borderRadius: "5px",
+            border: "none",
+            background: isHovered ? hoverColor : gold,
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: "1.17rem",
+            letterSpacing: 1,
+            marginTop: "4px",
+            boxShadow: `0 1px 2px ${border}`,
+            cursor: "pointer",
+            transition: "background 0.2s"
+          }}>
           LOGIN
         </button>
-        
-        {/* OR Divider */}
+
         <div style={{
           width: "100%",
           textAlign: "center",

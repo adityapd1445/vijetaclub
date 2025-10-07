@@ -1,23 +1,50 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../AuthContext';
 import { Link } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaPhone, FaLock } from 'react-icons/fa';
 
 const CLIENT_ID = "305261069007-7t1oas3j14ivc27nfr8382ul1cqk9nq5.apps.googleusercontent.com"; // Replace with your Google OAuth client id
 
 const Signup = () => {
-  const { signup } = useAuth(); // Assuming you have a signup method
+  const [isHovered, setIsHovered] = useState(false); // Hover state for the button
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     password: ''
   });
+  const [message, setMessage] = useState('');
   const googleBtn = useRef(null);
 
+  // Google OAuth signup handler
+  const handleGoogleSignup = async (googleUser) => {
+    try {
+      const response = await fetch('http://localhost:4000/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: googleUser.name,
+          email: googleUser.email,
+          phone: '', // Google doesn't provide phone
+          password: 'google-oauth-' + Date.now() // Generate a placeholder password
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessage('Google signup successful! You can now log in.');
+      } else {
+        setMessage(data.error || 'Google signup failed');
+      }
+    } catch (error) {
+      console.error('Google signup error:', error);
+      setMessage('Network error during Google signup.');
+    }
+  };
+
   useEffect(() => {
-    // eslint-disable-next-line no-unused-vars
-    /* global google */
     if (window.google && googleBtn.current) {
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
@@ -25,8 +52,7 @@ const Signup = () => {
           const id_token = response.credential;
           const payload = JSON.parse(atob(id_token.split('.')[1]));
           if (payload && payload.email) {
-            // You can auto-fill the form or directly sign up
-            signup({ email: payload.email, name: payload.name });
+            handleGoogleSignup({ email: payload.email, name: payload.name });
           }
         }
       });
@@ -37,7 +63,7 @@ const Signup = () => {
         shape: 'pill'
       });
     }
-  }, [googleBtn, signup]);
+  }, [googleBtn]);
 
   const handleChange = (e) => {
     setFormData({
@@ -46,14 +72,42 @@ const Signup = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle signup logic
-    signup(formData);
+    setMessage(''); // Clear previous messages
+    
+    try {
+      const response = await fetch('http://localhost:4000/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessage('Signup successful! You can now log in.');
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          password: ''
+        });
+      } else {
+        setMessage(data.error || 'Signup failed');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setMessage('Network error. Please try again.');
+    }
   };
 
   const gold = "#ffbf69";
   const border = "#f7dda4";
+  const hoverColor = "#e09537"; // Button hover color
 
   return (
     <div style={{
@@ -220,23 +274,41 @@ const Signup = () => {
           />
         </div>
 
-        <button type="submit" style={{
-          width: "100%",
-          padding: "16px 0",
-          borderRadius: "5px",
-          border: "none",
-          background: gold,
-          color: "#fff",
-          fontWeight: "bold",
-          fontSize: "1.17rem",
-          letterSpacing: 1,
-          marginTop: "6px",
-          boxShadow: `0 2px 8px ${border}`,
-          cursor: "pointer"
-        }}>
+        {/* Success/Error Message */}
+        {message && (
+          <div style={{
+            color: message.includes('successful') ? 'green' : 'red',
+            fontSize: '0.9rem',
+            textAlign: 'center',
+            marginTop: '-10px'
+          }}>
+            {message}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={{
+            width: "100%",
+            padding: "16px 0",
+            borderRadius: "5px",
+            border: "none",
+            background: isHovered ? hoverColor : gold,
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: "1.17rem",
+            letterSpacing: 1,
+            marginTop: "6px",
+            boxShadow: `0 2px 8px ${border}`,
+            cursor: "pointer",
+            transition: "background 0.2s"
+          }}
+        >
           SIGN UP
         </button>
-        
+
         {/* OR Divider */}
         <div style={{
           width: "100%",

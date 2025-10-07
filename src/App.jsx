@@ -11,6 +11,9 @@ import Events from './pages/Events';
 import Gallery from './pages/Gallery';
 import Funds from './pages/Funds';
 import Donations from './pages/Donations';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+
 
 import './App.css';
 
@@ -48,7 +51,6 @@ function App() {
         </div>
       )}
 
-      {/* REMOVED ALL WRAPPERS - DIRECT ROUTES */}
       <Routes>
         <Route path="/" element={user ? <Home /> : <Navigate to="/login" replace />} />
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
@@ -58,6 +60,8 @@ function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/donations" element={<Donations />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/funds" element={
           <PrivateRoute>
             <Funds />
