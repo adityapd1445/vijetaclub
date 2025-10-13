@@ -4,8 +4,13 @@ import { FaUser, FaEnvelope, FaPhone, FaLock } from 'react-icons/fa';
 
 const CLIENT_ID = "305261069007-7t1oas3j14ivc27nfr8382ul1cqk9nq5.apps.googleusercontent.com"; // Replace with your Google OAuth client id
 
+function isValidEmail(email) {
+  // Simple regex for email validation
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 const Signup = () => {
-  const [isHovered, setIsHovered] = useState(false); // Hover state for the button
+  const [isHovered, setIsHovered] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,34 +20,29 @@ const Signup = () => {
   const [message, setMessage] = useState('');
   const googleBtn = useRef(null);
 
-  // Google OAuth signup handler
   const handleGoogleSignup = async (googleUser) => {
-    try {
-      const response = await fetch('http://localhost:4000/api/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: googleUser.name,
-          email: googleUser.email,
-          phone: '', // Google doesn't provide phone
-          password: 'google-oauth-' + Date.now() // Generate a placeholder password
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessage('Google signup successful! You can now log in.');
-      } else {
-        setMessage(data.error || 'Google signup failed');
-      }
-    } catch (error) {
-      console.error('Google signup error:', error);
-      setMessage('Network error during Google signup.');
+  try {
+    const response = await fetch('http://localhost:4000/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: googleUser.name || 'Google User',   // fallback if no name
+        email: googleUser.email,
+        phone: '', // or get number from somewhere if needed
+        password: `google-oauth-${Date.now()}`
+      }),
+    });
+    const data = await response.json();
+    if (data.success) {
+      setMessage('Google signup successful! You can now log in.');
+    } else {
+      setMessage(data.error || 'Google signup failed');
     }
-  };
+  } catch (error) {
+    setMessage('Network error during Google signup.');
+  }
+};
+
 
   useEffect(() => {
     if (window.google && googleBtn.current) {
@@ -66,36 +66,29 @@ const Signup = () => {
   }, [googleBtn]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage(''); // Clear previous messages
-    
+    setMessage('');
+
+    // Frontend email validation
+    if (!isValidEmail(formData.email)) {
+      setMessage('Please enter a valid email address.');
+      return;
+    }
+
     try {
       const response = await fetch('http://localhost:4000/api/signup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      
       const data = await response.json();
-      
       if (data.success) {
         setMessage('Signup successful! You can now log in.');
-        // Reset form
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          password: ''
-        });
+        setFormData({ name: '', email: '', phone: '', password: '' });
       } else {
         setMessage(data.error || 'Signup failed');
       }
@@ -107,7 +100,7 @@ const Signup = () => {
 
   const gold = "#ffbf69";
   const border = "#f7dda4";
-  const hoverColor = "#e09537"; // Button hover color
+  const hoverColor = "#e09537";
 
   return (
     <div style={{
@@ -278,9 +271,9 @@ const Signup = () => {
         {message && (
           <div style={{
             color: message.includes('successful') ? 'green' : 'red',
-            fontSize: '0.9rem',
-            textAlign: 'center',
-            marginTop: '-10px'
+            fontSize: '0.94rem',
+            marginBottom: '2px',
+            textAlign: 'center'
           }}>
             {message}
           </div>

@@ -34,15 +34,21 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Signup - create new user
+// Signup - create new user (handles Google vs normal signup)
 app.post('/api/signup', async (req, res) => {
   const { name, email, phone, password } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ success: false, error: 'All fields are required.' });
   }
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, phone, password: hashedPassword });
+    // Google signup: password starts with 'google-oauth'
+    let storedPassword;
+    if (password.startsWith('google-oauth')) {
+      storedPassword = password; // store as is for Google OAuth
+    } else {
+      storedPassword = await bcrypt.hash(password, 10); // normal user
+    }
+    const user = new User({ name, email, phone, password: storedPassword });
     await user.save();
     res.json({ success: true, message: 'User registered!' });
   } catch (error) {
@@ -51,7 +57,7 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-// Login
+// Login - supports Google and normal users
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -60,6 +66,12 @@ app.post('/api/login', async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.json({ success: false, error: 'User not found.' });
+
+    // Google login: password supplied as 'google-oauth'
+    if (password === 'google-oauth' && user.password.startsWith('google-oauth')) {
+      return res.json({ success: true, user: { email: user.email, name: user.name, phone: user.phone } });
+    }
+    // Normal login
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.json({ success: false, error: 'Incorrect password.' });
     res.json({ success: true, user: { email: user.email, name: user.name, phone: user.phone } });
@@ -120,9 +132,8 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
-
 app.listen(4000, () => {
   console.log('🚀 Server started on http://localhost:4000');
   console.log('📧 Email service ready for sginvoker@gmail.com');
-  console.log('🗄️  User database with password hashing enabled');
+  console.log('🗄️  User database with password hashing + Google login enabled');
 });

@@ -1,22 +1,77 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../AuthContext';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaLock } from 'react-icons/fa';
+import { useAuth } from './AuthContext';
 
-// Google OAuth client id
 const CLIENT_ID = "305261069007-7t1oas3j14ivc27nfr8382ul1cqk9nq5.apps.googleusercontent.com";
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 const Login = () => {
-  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isHovered, setIsHovered] = useState(false);
+  const [message, setMessage] = useState('');
   const googleBtn = useRef(null);
-  const navigate = useNavigate(); // For navigation
+  const navigate = useNavigate();
+
+  const handleGoogleLogin = useCallback(async (googleUser) => {
+    if (!isValidEmail(googleUser.email)) {
+      setMessage('Invalid Google email address.');
+      return;
+    }
+    try {
+      // Try to login
+      let response = await fetch('http://localhost:4000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: googleUser.email,
+          password: 'google-oauth'
+        }),
+      });
+      let data = await response.json();
+      if (data.success) {
+        setMessage('Login successful.');
+        localStorage.setItem('user', JSON.stringify(data.user)); // <--- Store user info here!
+        setTimeout(() => navigate("/"), 500);
+        return;
+      }
+      // If not found, try to register (signup)
+      if (data.error && data.error.includes('not found')) {
+        response = await fetch('http://localhost:4000/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: googleUser.name || 'Google User',
+            email: googleUser.email,
+            phone: '',
+            password: `google-oauth-${Date.now()}`
+          }),
+        });
+        data = await response.json();
+        if (data.success) {
+          setMessage('Google signup successful! Redirecting...');
+          localStorage.setItem('user', JSON.stringify({
+            name: googleUser.name || 'Google User',
+            email: googleUser.email,
+            phone: ''
+          })); // <--- Store user info here, too!
+          setTimeout(() => navigate("/"), 500);
+        } else {
+          setMessage(data.error || 'Google signup failed');
+        }
+        return;
+      }
+      setMessage(data.error || 'Google login failed');
+    } catch (error) {
+      setMessage('Network error during Google login.');
+    }
+  }, [navigate]);
 
   useEffect(() => {
-    // eslint-disable-next-line no-unused-vars
-    /* global google */
     if (window.google && googleBtn.current) {
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
@@ -24,7 +79,7 @@ const Login = () => {
           const id_token = response.credential;
           const payload = JSON.parse(atob(id_token.split('.')[1]));
           if (payload && payload.email) {
-            login({ email: payload.email });
+            handleGoogleLogin({ email: payload.email, name: payload.name });
           }
         }
       });
@@ -35,14 +90,34 @@ const Login = () => {
         shape: 'pill'
       });
     }
-  }, [googleBtn, login]);
+  }, [googleBtn, handleGoogleLogin]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    login({ email, password });
+    setMessage('');
+    if (!isValidEmail(email)) {
+      setMessage('Please enter a valid email address.');
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:4000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMessage('Login successful.');
+        localStorage.setItem('user', JSON.stringify(data.user)); // <--- Store user info here!
+        setTimeout(() => navigate("/"), 500);
+      } else {
+        setMessage(data.error || 'Login failed');
+      }
+    } catch (error) {
+      setMessage('Network error. Please try again.');
+    }
   };
 
-  // When "Forgot Password" is clicked
   const handleForgotPassword = () => {
     navigate('/forgot-password');
   };
@@ -149,6 +224,17 @@ const Login = () => {
             }}
           />
         </div>
+
+        {message && (
+          <div style={{
+            color: message.includes('success') ? 'green' : 'red',
+            fontSize: '0.94rem',
+            marginBottom: '2px',
+            textAlign: 'center'
+          }}>
+            {message}
+          </div>
+        )}
 
         <div style={{
           width: "100%",
